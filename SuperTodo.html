@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Super-Todo</title>
+  
+  <!-- Cấu hình PWA / Web App toàn màn hình cho iPhone -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Super-Todo">
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/906/906334.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    .task-enter { animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white pb-24">
+
+  <!-- TOP APP BAR -->
+  <header class="sticky top-0 z-30 bg-slate-950/85 backdrop-blur-md border-b border-slate-800/80 pt-safe">
+    <div class="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+          <i class="fa-solid fa-bolt text-white text-base"></i>
+        </div>
+        <div>
+          <h1 class="font-black text-base tracking-wide flex items-center gap-2">
+            SUPER-TODO <span class="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 font-extrabold border border-indigo-500/30">PRO</span>
+          </h1>
+          <p id="current-date-text" class="text-[11px] text-slate-400 font-medium">Hôm nay</p>
+        </div>
+      </div>
+
+      <!-- Chỉ số hiệu suất nhanh -->
+      <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-2xl text-xs font-mono">
+        <span class="text-slate-400">Điểm ngày:</span>
+        <span id="productivity-score" class="font-bold text-emerald-400">100đ</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-4 py-5 flex-1 w-full space-y-5">
+
+    <!-- THANH TIẾN ĐỘ HOÀN THÀNH (DAILY PROGRESS) -->
+    <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800/80 rounded-3xl p-5 shadow-xl space-y-3">
+      <div class="flex items-center justify-between text-xs">
+        <div>
+          <span class="text-slate-400 block text-[10px] uppercase tracking-wider font-bold">Tiến Độ Mục Tiêu Ngày</span>
+          <span id="progress-status-text" class="font-bold text-white text-sm mt-0.5 block">0/0 hoàn thành</span>
+        </div>
+        <span id="progress-percent" class="font-mono font-black text-indigo-400 text-lg">0%</span>
+      </div>
+      
+      <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden p-0.5 border border-slate-800/80">
+        <div id="progress-bar-fill" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full rounded-full transition-all duration-500 w-0"></div>
+      </div>
+    </div>
+
+    <!-- BỘ LỌC DANH MỤC (CATEGORIES) -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+      <button onclick="setCategoryFilter('all')" class="cat-filter-btn px-3.5 py-1.5 rounded-xl font-bold bg-indigo-600 text-white transition shrink-0" data-cat="all">Tất Cả</button>
+      <button onclick="setCategoryFilter('study')" class="cat-filter-btn px-3.5 py-1.5 rounded-xl font-semibold bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5" data-cat="study">
+        <i class="fa-solid fa-graduation-cap text-amber-400"></i> Học Tập
+      </button>
+      <button onclick="setCategoryFilter('dev')" class="cat-filter-btn px-3.5 py-1.5 rounded-xl font-semibold bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5" data-cat="dev">
+        <i class="fa-solid fa-cube text-indigo-400"></i> Server Dev
+      </button>
+      <button onclick="setCategoryFilter('studio')" class="cat-filter-btn px-3.5 py-1.5 rounded-xl font-semibold bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5" data-cat="studio">
+        <i class="fa-solid fa-headset text-rose-400"></i> Ticket CSKH
+      </button>
+      <button onclick="setCategoryFilter('life')" class="cat-filter-btn px-3.5 py-1.5 rounded-xl font-semibold bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5" data-cat="life">
+        <i class="fa-solid fa-heart text-pink-400"></i> Cá Nhân
+      </button>
+    </div>
+
+    <!-- DANH SÁCH TASK -->
+    <div id="task-container" class="space-y-2.5">
+      <!-- Render via JS -->
+    </div>
+
+  </main>
+
+  <!-- NÚT TẠO TASK NHANH (FLOATING ACTION BUTTON DÀNH CHO IPHONE) -->
+  <div class="fixed bottom-6 inset-x-0 max-w-2xl mx-auto px-4 pointer-events-none z-30">
+    <button onclick="openAddTaskModal()" class="pointer-events-auto w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold rounded-2xl shadow-xl shadow-indigo-600/30 text-xs flex items-center justify-center gap-2 transition active:scale-[0.98]">
+      <i class="fa-solid fa-plus text-sm"></i> Thêm Nhiệm Vụ Mới
+    </button>
+  </div>
+
+  <!-- MODAL THÊM TASK MỚI -->
+  <div id="modal-add-task" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border-t sm:border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-indigo-400"></i> Tạo Nhiệm Vụ Mới
+        </h3>
+        <button onclick="closeAddTaskModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleAddTask(event)" class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Nội dung công việc <span class="text-rose-400">*</span></label>
+          <input required type="text" id="task-title-input" placeholder="VD: Giải đề Toán / Config Boss Cự Mộc / Ôn 30 từ IELTS..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-slate-100 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Danh mục</label>
+            <select id="task-cat-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="study">📚 Học Tập</option>
+              <option value="dev">⚙️ Server Dev</option>
+              <option value="studio">🎧 Ticket CSKH</option>
+              <option value="life">❤️ Cá Nhân</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Độ ưu tiên</label>
+            <select id="task-priority-select" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="high">🔴 Khẩn Cấp (SLA)</option>
+              <option value="normal" selected>🟡 Bình Thường</option>
+              <option value="low">🟢 Thong Thả</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Khung giờ / Hạn chót</label>
+          <input type="text" id="task-time-input" placeholder="VD: Trước 21:00 / Ca tối 2 tiếng" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button type="button" onclick="closeAddTaskModal()" class="px-4 py-2.5 bg-slate-800 text-slate-300 font-semibold rounded-xl">Hủy</button>
+          <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/25">Lưu Nhiệm Vụ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_TODO = 'super_todo_tasks_v1';
+    let currentCategory = 'all';
+
+    // Dữ liệu ban đầu
+    const INITIAL_ITEMS = [
+      { id: 'T-1', title: 'Giải đề thi thử Toán - Lý chuẩn bị kiểm tra', category: 'study', priority: 'high', deadline: 'Trước 19:30', done: false },
+      { id: 'T-2', title: 'Test kịch bản kỹ năng Boss Cự Mộc Ma Tôn (không dùng @PIR)', category: 'dev', priority: 'high', deadline: '21:00', done: false },
+      { id: 'T-3', title: 'Đối soát 1 ticket rơi void cụm Earth & đóng hồ sơ', category: 'studio', priority: 'normal', deadline: 'Ca tối 30p', done: true },
+      { id: 'T-4', title: 'Nghỉ ngơi & nhắn tin trò chuyện', category: 'life', priority: 'low', deadline: '22:30', done: false }
+    ];
+
+    function getTasks() {
+      return JSON.parse(localStorage.getItem(STORAGE_TODO) || JSON.stringify(INITIAL_ITEMS));
+    }
+
+    function saveTasks(data) {
+      localStorage.setItem(STORAGE_TODO, JSON.stringify(data));
+      render();
+    }
+
+    function setCategoryFilter(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.cat-filter-btn').forEach(b => {
+        if (b.dataset.cat === cat) {
+          b.className = 'cat-filter-btn px-3.5 py-1.5 rounded-xl font-bold bg-indigo-600 text-white transition shrink-0';
+        } else {
+          b.className = 'cat-filter-btn px-3.5 py-1.5 rounded-xl font-semibold bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition shrink-0 flex items-center gap-1.5';
+        }
+      });
+      render();
+    }
+
+    function toggleTask(id) {
+      const tasks = getTasks();
+      const task = tasks.find(x => x.id === id);
+      if (task) {
+        task.done = !task.done;
+        saveTasks(tasks);
+      }
+    }
+
+    function deleteTask(id) {
+      let tasks = getTasks();
+      tasks = tasks.filter(x => x.id !== id);
+      saveTasks(tasks);
+    }
+
+    function openAddTaskModal() {
+      document.getElementById('modal-add-task').classList.remove('hidden');
+      document.getElementById('task-title-input').focus();
+    }
+
+    function closeAddTaskModal() {
+      document.getElementById('modal-add-task').classList.add('hidden');
+      document.getElementById('task-title-input').value = '';
+      document.getElementById('task-time-input').value = '';
+    }
+
+    function handleAddTask(e) {
+      e.preventDefault();
+      const title = document.getElementById('task-title-input').value.trim();
+      const cat = document.getElementById('task-cat-select').value;
+      const prio = document.getElementById('task-priority-select').value;
+      const deadline = document.getElementById('task-time-input').value.trim() || 'Hôm nay';
+
+      const tasks = getTasks();
+      tasks.unshift({
+        id: 'T-' + Date.now(),
+        title,
+        category: cat,
+        priority: prio,
+        deadline,
+        done: false
+      });
+
+      saveTasks(tasks);
+      closeAddTaskModal();
+    }
+
+    function render() {
+      const tasks = getTasks();
+      const container = document.getElementById('task-container');
+      container.innerHTML = '';
+
+      // Tính điểm tiến độ
+      const total = tasks.length;
+      const doneCount = tasks.filter(x => x.done).length;
+      const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
+
+      document.getElementById('progress-status-text').textContent = `${doneCount}/${total} việc đã hoàn thành`;
+      document.getElementById('progress-percent').textContent = `${percent}%`;
+      document.getElementById('progress-bar-fill').style.width = `${percent}%`;
+      document.getElementById('productivity-score').textContent = `${100 + (doneCount * 5)}đ`;
+
+      const filtered = currentCategory === 'all' ? tasks : tasks.filter(x => x.category === currentCategory);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-500 space-y-2">
+            <i class="fa-solid fa-mug-hot text-3xl opacity-40"></i>
+            <p class="text-xs italic">Không có nhiệm vụ nào trong danh mục này. Hãy thư giãn!</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(task => {
+        let prioBadge = '';
+        if (task.priority === 'high') prioBadge = '<span class="text-[9px] font-black uppercase text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded">Khẩn</span>';
+        else if (task.priority === 'normal') prioBadge = '<span class="text-[9px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">Ưu Tiên</span>';
+
+        let catIcon = '';
+        if (task.category === 'study') catIcon = '<span class="text-amber-400"><i class="fa-solid fa-graduation-cap"></i> Học Tập</span>';
+        else if (task.category === 'dev') catIcon = '<span class="text-indigo-400"><i class="fa-solid fa-cube"></i> Server Dev</span>';
+        else if (task.category === 'studio') catIcon = '<span class="text-rose-400"><i class="fa-solid fa-headset"></i> Ticket CSKH</span>';
+        else catIcon = '<span class="text-pink-400"><i class="fa-solid fa-heart"></i> Cá Nhân</span>';
+
+        const div = document.createElement('div');
+        div.className = `task-enter p-4 rounded-2xl border transition-all flex items-start justify-between gap-3 ${task.done ? 'bg-slate-950/40 border-slate-900 opacity-60' : 'bg-slate-900/90 border-slate-800/90 hover:border-slate-700 shadow-md'}`;
+
+        div.innerHTML = `
+          <div class="flex items-start gap-3 flex-1 min-w-0 cursor-pointer" onclick="toggleTask('${task.id}')">
+            <div class="w-5 h-5 rounded-lg border flex items-center justify-center mt-0.5 transition shrink-0 ${task.done ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-700 bg-slate-950'}">
+              ${task.done ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h4 class="text-xs font-semibold leading-relaxed truncate ${task.done ? 'line-through text-slate-500' : 'text-slate-200'}">
+                ${task.title}
+              </h4>
+              <div class="flex items-center gap-2 mt-1.5 text-[10px] text-slate-400">
+                ${catIcon}
+                <span>•</span>
+                <span class="font-mono text-slate-400"><i class="fa-regular fa-clock text-[9px] mr-0.5"></i>${task.deadline}</span>
+                ${prioBadge}
+              </div>
+            </div>
+          </div>
+
+          <button onclick="deleteTask('${task.id}')" class="text-slate-600 hover:text-rose-400 p-1.5 transition">
+            <i class="fa-regular fa-trash-can text-xs"></i>
+          </button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Hiển thị ngày
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    document.getElementById('current-date-text').textContent = new Date().toLocaleDateString('vi-VN', options);
+
+    render();
+  </script>
+</body>
+</html>
